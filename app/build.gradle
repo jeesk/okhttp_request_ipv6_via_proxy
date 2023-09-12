@@ -47,4 +47,7 @@ dependencies {
     androidTestImplementation 'androidx.test.ext:junit:1.1.5'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
     implementation 'com.squareup.okhttp3:okhttp:4.10.0'
+    implementation 'io.github.hakky54:sslcontext-kickstart:8.1.1'
+    implementation 'com.geyifeng.immersionbar:immersionbar:3.2.2'
+    implementation 'com.geyifeng.immersionbar:immersionbar-ktx:3.2.2'
 }

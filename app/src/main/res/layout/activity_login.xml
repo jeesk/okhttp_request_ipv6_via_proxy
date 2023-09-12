@@ -17,9 +17,7 @@
         android:layout_height="wrap_content"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent">
-
-    </androidx.appcompat.widget.SwitchCompat>
+        app:layout_constraintTop_toTopOf="parent"></androidx.appcompat.widget.SwitchCompat>
 
 
     <EditText
@@ -30,11 +28,25 @@
         android:hint="@string/prompt_email"
         android:inputType="textEmailAddress"
         android:selectAllOnFocus="true"
-        android:text="https://cert.pgyer.eu.org:4443/1.json"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/switch_url"
+        app:layout_constraintVertical_bias="0.0" />
+
+
+    <EditText
+        android:id="@+id/proxyAddr"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="96dp"
+        android:hint="@string/socks5_proxy_addr"
+        android:inputType="textEmailAddress"
+        android:selectAllOnFocus="true"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/url"
         app:layout_constraintVertical_bias="0.0" />
 
     <TextView
@@ -44,7 +56,17 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/url"
+        app:layout_constraintTop_toBottomOf="@+id/proxyAddr"
+        app:layout_constraintVertical_bias="0.154" />
+
+    <TextView
+        android:id="@+id/curl_result"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/result"
         app:layout_constraintVertical_bias="0.154" />
 
     <Button
@@ -54,12 +76,12 @@
         android:layout_gravity="start"
         android:layout_marginTop="16dp"
         android:layout_marginBottom="64dp"
-        android:text="click me!!!"
+        android:text="click me get request "
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.498"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/result"
+        app:layout_constraintTop_toBottomOf="@+id/curl_result"
         app:layout_constraintVertical_bias="0.244" />
     />
 

@@ -13,4 +13,12 @@
         <item name="android:statusBarColor">?attr/colorPrimaryVariant</item>
         <!-- Customize your theme here. -->
     </style>
+
+
+
+    <style name="Theme.Hportal" parent="Theme.MaterialComponents.DayNight.NoActionBar"></style>
+
+    <style name="Theme.Hportal.AppBarOverlay" parent="ThemeOverlay.AppCompat.Dark.ActionBar" />
+
+    <style name="Theme.Hportal.PopupOverlay" parent="ThemeOverlay.AppCompat.Light" />
 </resources>

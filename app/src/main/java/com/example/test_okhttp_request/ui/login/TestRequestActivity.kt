@@ -1,7 +1,7 @@
 package com.example.test_okhttp_request.ui.login
 
-import android.annotation.SuppressLint
 import android.os.Bundle
+import android.util.Log
 import android.widget.EditText
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.SwitchCompat
@@ -9,12 +9,17 @@ import com.example.test_okhttp_request.databinding.ActivityLoginBinding
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
+import nl.altindag.ssl.SSLFactory
+import nl.altindag.ssl.util.KeyStoreUtils
+import nl.altindag.ssl.util.TrustManagerUtils
 import okhttp3.OkHttpClient
+import java.io.BufferedReader
 import java.io.IOException
 import java.io.InputStream
-import java.security.KeyManagementException
+import java.io.InputStreamReader
+import java.net.InetSocketAddress
+import java.net.Proxy
 import java.security.KeyStore
-import java.security.NoSuchAlgorithmException
 import java.security.cert.CertificateFactory
 import java.util.concurrent.TimeUnit
 import javax.net.ssl.*
@@ -29,131 +34,82 @@ class TestRequestActivity : AppCompatActivity() {
         setContentView(binding.root)
         val url: EditText = binding.url!!
         val login = binding.executeRequest
-        val self = this
+        // This url can gets your ipv5 addr
+        binding.url!!.setText("http://6.ipw.cn")
         binding.switchUrl?.setOnClickListener {
             val sw = it as SwitchCompat
             if (sw.isChecked) {
-                binding?.url!!.setText("https://cert.pgyer.eu.org:4443/1.json")
+                binding.url!!.setText("http://4.ipw.cn")
             } else {
-                binding?.url!!.setText("https://bing.com")
+//                http://[2402:4e00:1013:e500:0:9671:f018:4947]
+                binding.url!!.setText("http://6.ipw.cn")
             }
         }
 
         login?.setOnClickListener {
             MainScope().launch(context = Dispatchers.IO) {
+                val clentBulder = OkHttpClient().newBuilder()
                 try {
-                    val request = okhttp3.Request.Builder().get().url(url.text.toString()).build()
-                    val clent = OkHttpClient().newBuilder()
-                        .setSSLCertificate(self.assets.open("rootCA.pem"))
-                        .connectTimeout(1, TimeUnit.SECONDS)
-                        .readTimeout(1, TimeUnit.SECONDS)
-                        .writeTimeout(1, TimeUnit.SECONDS)
-/*
-                        .hostnameVerifier(object : HostnameVerifier {
-                            @SuppressLint("BadHostnameVerifier")
-                            override fun verify(hostname: String?, session: SSLSession?): Boolean {
-                                // ignore domain
-                                return true
-                            }
-                        })
-*/
+                    if (binding.proxyAddr!!.text.toString() != "") {
+                        val proxyAddr = binding.proxyAddr!!.text.toString().split(":")
+                        clentBulder.proxy(
+                            Proxy(
+                                Proxy.Type.SOCKS,
+                                InetSocketAddress(proxyAddr[0], proxyAddr[1].toInt())
+                            )
+                        )
+                    }
+                    val request = okhttp3.Request.Builder().get().url(url.text.toString())
                         .build()
-                    val resp = clent.newCall(request).execute()
+                    val client = clentBulder
+                        .connectTimeout(5, TimeUnit.SECONDS)
+                        .readTimeout(5, TimeUnit.SECONDS)
+                        .writeTimeout(5, TimeUnit.SECONDS)
+                        .build()
+                    val resp = client.newCall(request).execute()
                     launch(Dispatchers.Main) {
                         if (resp.isSuccessful) {
-                            binding.result?.text = resp.body?.string()
+                            binding.result?.text = "okhttp request:" + resp.body?.string()
+                        } else {
+                            binding.result?.text = "okhttp request:" + resp.code.toString()
                         }
                     }
                 } catch (e: java.lang.Exception) {
                     launch(Dispatchers.Main) {
-                        binding.result?.text = e.message
+                        binding.result?.text = "okhttp request:" + e.message
+                    }
+                }
+            }
+
+            MainScope().launch(context = Dispatchers.IO) {
+                try {
+                    val process: Process = if (binding.proxyAddr!!.text.toString() == "") {
+                        Runtime.getRuntime().exec("curl  ${binding.url!!.text.toString()}")
+                    } else {
+                        val command =
+                            "curl -x socks5h://${binding.proxyAddr!!.text.toString()} ${binding.url!!.text.toString()}"
+                        Runtime.getRuntime().exec(command)
+                    }
+                    val reader = BufferedReader(InputStreamReader(process.inputStream))
+                    var line: String?
+                    val sb = java.lang.StringBuilder()
+                    while (reader.readLine().also { line = it } != null) {
+                        sb.append(line)
+                    }
+                    launch(context = Dispatchers.Main) {
+                        binding.curlResult!!.text = "curl request: " + sb.toString()
+                    }
+                    reader.close()
+                } catch (e: IOException) {
+                    launch(context = Dispatchers.Main) {
+                        binding.curlResult!!.text = "curl request: " + e.message
                     }
                 }
             }
         }
+
+
     }
 
-    fun OkHttpClient.Builder.setSSLCertificate(
-        vararg certificates: InputStream,
-        bksFile: InputStream? = null,
-        password: String? = null
-    ) = apply {
-        val trustManager = prepareTrustManager(*certificates)?.let { chooseTrustManager(it) }
-        setSSLCertificate(trustManager!!, bksFile, password)
-    }
-
-    fun OkHttpClient.Builder.setSSLCertificate(
-        trustManager: X509TrustManager,
-        bksFile: InputStream? = null,
-        password: String? = null,
-    ) = apply {
-        try {
-            val trustManagerFinal: X509TrustManager = trustManager
-            val keyManagers = prepareKeyManager(bksFile, password)
-            val sslContext = SSLContext.getInstance("TLS")
-            // 用上面得到的trustManagers初始化SSLContext，这样sslContext就会信任keyStore中的证书
-            // 第一个参数是授权的密钥管理器，用来授权验证，比如授权自签名的证书验证。第二个是被授权的证书管理器，用来验证服务器端的证书
-            sslContext.init(keyManagers, arrayOf<TrustManager?>(trustManagerFinal), null)
-            // 通过sslContext获取SSLSocketFactory对象
-            sslSocketFactory(sslContext.socketFactory, trustManagerFinal)
-        } catch (e: NoSuchAlgorithmException) {
-            throw AssertionError(e)
-        } catch (e: KeyManagementException) {
-            throw AssertionError(e)
-        }
-    }
-
-    internal fun prepareKeyManager(bksFile: InputStream?, password: String?): Array<KeyManager>? {
-        try {
-            if (bksFile == null || password == null) return null
-            val clientKeyStore = KeyStore.getInstance("BKS")
-            clientKeyStore.load(bksFile, password.toCharArray())
-            val kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm())
-            kmf.init(clientKeyStore, password.toCharArray())
-            return kmf.keyManagers
-        } catch (e: Exception) {
-
-        }
-        return null
-    }
-
-
-    fun prepareTrustManager(vararg certificates: InputStream?): Array<TrustManager>? {
-        if (certificates.isEmpty()) return null
-        try {
-            val certificateFactory = CertificateFactory.getInstance("X.509")
-            // 创建一个默认类型的KeyStore，存储我们信任的证书
-            val keyStore = KeyStore.getInstance(KeyStore.getDefaultType())
-            cload(null)
-            for ((index, certStream) in certificates.withIndex()) {
-                val certificateAlias = (index).toString()
-                // 证书工厂根据证书文件的流生成证书 cert
-                val cert = certificateFactory.generateCertificate(certStream)
-                // 将cert作为可信证书放入到keyStore中
-                keyStore.setCertificateEntry(certificateAlias, cert)
-                try {
-                    certStream?.close()
-                } catch (e: IOException) {
-                }
-            }
-            // 我们创建一个默认类型的TrustManagerFactory
-            val tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm())
-            // 用我们之前的keyStore实例初始化TrustManagerFactory，这样tmf就会信任keyStore中的证书
-            tmf.init(keyStore)
-            // 通过tmf获取TrustManager数组，TrustManager也会信任keyStore中的证书
-            return tmf.trustManagers
-        } catch (e: Exception) {
-        }
-        return null
-    }
-
-    fun chooseTrustManager(trustManagers: Array<TrustManager>): X509TrustManager? {
-        for (trustManager in trustManagers) {
-            if (trustManager is X509TrustManager) {
-                return trustManager
-            }
-        }
-        return null
-    }
 
 }
